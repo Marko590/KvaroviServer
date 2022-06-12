@@ -3,7 +3,7 @@ REST Node API made using Express, for usage in [Kvarovi](https://github.com/Mark
 
 ## Routes
 
-`GET    /vodovod/kvarovi` - returns scraped information from [this webpage](https://www.bvk.rs/kvarovi-na-mrezi/) about today's sewage malfunctions in Belgrade.  
+`GET:   ../vodovod/kvarovi` - returns scraped information from [this webpage](https://www.bvk.rs/kvarovi-na-mrezi/) about today's sewage malfunctions in Belgrade.  
 
 
 **Return value of the request:**
@@ -19,7 +19,7 @@ allData : [
   ]
 ```
 ___
-`GET( parameters:{address:string} )    /vodovod/coordinates` - returns coordinates of the street passed in the `address` parameter of the GET request.
+`GET ( parameters:{address:string} ):   ../vodovod/coordinates` - returns coordinates of the street passed in the `address` parameter of the GET request.
 
 Coordinates are acquired by searching for the address in Google Maps, and parsing the body of the search response.
 
