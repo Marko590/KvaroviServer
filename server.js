@@ -28,7 +28,7 @@ function addressUrlBuilder(address) {
     const serbianLatinAddress = transliterate(fullAddressDash, { from: 'sr-Cyrl', to: 'serbian-latin' });
     //replace "dzh" with "dž" and "ch" with "č" and "tsh" with "ć" and "sh" with "š" and "dj" with "đ"
     const serbianLatinAddress2 = serbianLatinAddress.replace(/dzh/g, "dž").replace(/ch/g, "č").replace(/tsh/g, "ć").replace(/sh/g, "š").replace(/dj/g, "đ");
-    console.log(serbianLatinAddress2)
+  
     const fullAddress = serbianLatinAddress2.trim() + ', Београд'
 
 
@@ -36,7 +36,7 @@ function addressUrlBuilder(address) {
 
     const addressSplit = fullAddress.split(' ')
     const addressUrl = addressSplit.join('+')
-    console.log("https://www.google.com/maps/place/" + addressUrl)
+    
     return ("http://www.google.com/maps/place/" + addressUrl + "/?hl=sr").trim()
 
 }
@@ -49,17 +49,89 @@ function getCoordinateFromResponseBody(address) {
         root.querySelectorAll('meta').forEach(element => {
 
             if (element.getAttribute('property') == 'og:image' || element.getAttribute('itemprop') == 'image') {
-                console.log("\n\n\n" + element.outerHTML + "\n\n\n");
+              
                 content = element.getAttribute('content').substring(element.getAttribute('content').indexOf("ll=") + 3)
             }
         })
 
         let coordinates = content.split(',')
-        return { latitude: coordinates.at(0), longitude: coordinates.at(1) }
+       
     })
 }
 
-function axiosTest() {
+
+
+/*
+:[
+    neighbourhood::string,
+    interval:
+            [
+                time:string,
+                streets:[] 
+            ]
+        }    
+]
+
+
+*/
+
+function getElectricalWorks(address) {
+    return axios.get("http://www.epsdistribucija.rs/Dan_0_Iskljucenja.htm").then(response => {
+        let content = new Array();
+        let root = parser.parse(response.data);
+
+        let table=root.querySelector('body > table:nth-child(2)');
+        let check=false;
+
+        let interval=[]
+        let firstRow=table.childNodes.at(1)
+        const streetList=firstRow.childNodes.at(2).text.split(', ');
+        let previousName=firstRow.childNodes.at(0).text;
+       interval.push({time:firstRow.childNodes.at(1).text,streets:streetList})
+
+
+
+       table.childNodes.slice(2).forEach(element => {
+            if(element.childNodes.at(0).text==previousName){
+                const streetList=element.childNodes.at(2).text.split(', ');
+                interval.push({time:element.childNodes.at(1).text,streets:streetList})
+            }
+            else{
+                content.push({neighbourhood:previousName,interval:interval})
+                previousName=element.childNodes.at(0).text;
+                interval=[]
+                const streetList=element.childNodes.at(2).text.split(', ');
+                interval.push({time:element.childNodes.at(1).text,streets:streetList})
+            }
+
+// return last element
+       })
+
+      
+        return {allData:content};
+        })
+    }
+
+function getPlannedWorks(address) {
+    return axios.get("https://www.bvk.rs/planirani-radovi/").then(response => {
+        const returnValue = new Array()
+        let content = ''
+        let root = parser.parse(response.data);
+
+        let divs = root.querySelectorAll('section.av_toggle_section > div');
+
+        divs.forEach(element => {
+            const title=element.firstChild.text
+            element.firstChild.remove()
+           
+           returnValue.push({title:title,content:element.innerHTML})
+        })
+        return {allData:returnValue}
+    })
+}
+
+
+function getPlumbingInfo() {
     return axios.get(url).then(response => {
 
         const returnValue = new Array()
@@ -75,7 +147,7 @@ function axiosTest() {
         while (child != null) {
 
             if (child.tagName == 'BLOCKQUOTE') {
-                time = child.text
+                time = child.text.trim()
             }
             else if (child.tagName == 'UL') {
                 const streetsArray = new Array();
@@ -113,16 +185,17 @@ function axiosTest() {
                 })
             })
         })
-        return { allData: returnValue }
+        return returnValue 
     })
 }
 
 
 app.get('/vodovod/kvarovi', async function (req, res) {
 
-    axiosTest()
+    getPlumbingInfo()
         .then(data => {
-
+            
+            console.log(JSON.stringify(data))
             res.end(JSON.stringify(data));
         })
         .catch(err => console.log(err))
@@ -131,13 +204,32 @@ app.get('/vodovod/kvarovi', async function (req, res) {
 
 app.get('/vodovod/radovi', async function (req, res) {
 
-    getCoordinateFromResponseBody(req.query.address)
+    getPlannedWorks()
         .then(data => {
-            console.log(data)
+            console.log(JSON.stringify(data))
             res.end(JSON.stringify(data));
         })
         .catch(err => console.log(err))
 })
+app.get('/vodovod/coordinates', async function (req, res) {
+
+    getCoordinateFromResponseBody(req.query.address)
+        .then(data => {
+            console.log(JSON.stringify(data))
+            res.end(JSON.stringify(data));
+        })
+        .catch(err => console.log(err))
+})
+app.get('/struja/radovi', async function (req, res) {
+
+    getElectricalWorks()
+        .then(data => {
+            console.log(JSON.stringify(data))
+            res.end(JSON.stringify(data));
+        })
+        .catch(err => console.log(err))
+})
+
 const port = process.env.PORT || 3000;
 
 app.set('port',port)
