@@ -52,5 +52,5 @@ jobs:
         with:
           app-name: 'KvaroviServer'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_365EAE081FF04B35B9B60EECBC1B6202 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_DBE2871F02EB407A99E63CD1D31B2194 }}
           package: .
