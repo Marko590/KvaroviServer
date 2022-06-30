@@ -1,0 +1,23 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "cheerio": "^1.0.0-rc.11",
+    "express": "^4.18.1",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
+    "mkcert": "^1.5.0",
+    "node-html-parser": "^5.3.3",
+    "request": "^2.88.2",
+    "util": "^0.12.4"
+  }
+}
