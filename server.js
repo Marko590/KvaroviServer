@@ -138,8 +138,10 @@ app.get('/vodovod/radovi', async function (req, res) {
         })
         .catch(err => console.log(err))
 })
+const port = process.env.PORT || 3000;
 
-var server = app.listen(8081, function () {
+app.set('port',port)
+var server = app.listen(port, function () {
     var host = server.address().address
     var port = server.address().port
 
