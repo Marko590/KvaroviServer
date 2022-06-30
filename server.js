@@ -168,7 +168,7 @@ function getPlumbingInfo() {
                 })
                 streets = streetsArray
 
-                returnValue.push({ time: time, streets: streets })
+                returnValue.push({ time: time.trim(), streets: streets })
 
 
             }
