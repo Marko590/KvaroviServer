@@ -8,7 +8,9 @@ const util = require('util')
 const request = require('request');
 var parser = require('node-html-parser');
 const url = "https://www.bvk.rs/kvarovi-na-mrezi/";
+const { Expo } = require('expo-server-sdk')
 
+let expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
 
 function addressUrlBuilder(address) {
@@ -230,7 +232,12 @@ app.get('/struja/radovi', async function (req, res) {
         .catch(err => console.log(err))
 })
 app.get('/test', async function (req, res) {
-
+    messages.push({
+        to: pushToken,
+        sound: 'default',
+        body: 'This is a test notification',
+        data: { withSome: 'data' },
+      })
     getElectricalWorks()
         .then(data => {
             console.log(JSON.stringify(data))
