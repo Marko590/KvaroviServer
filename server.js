@@ -255,7 +255,7 @@ app.get('/notification', async function (req, res) {
         body: 'This is a test notification',
         data: { withSome: 'data' },
       })
-      let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+      let ticketChunk = await expo.sendPushNotificationsAsync(messages);
     getElectricalWorks()
         .then(data => {
             console.log(JSON.stringify(data))
