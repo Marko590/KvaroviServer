@@ -232,12 +232,14 @@ app.get('/struja/radovi', async function (req, res) {
         .catch(err => console.log(err))
 })
 app.get('/test', async function (req, res) {
+    let messages = [];
     messages.push({
         to: process.env.MY_NOTIFICATION_TOKEN,
         sound: 'default',
         body: 'This is a test notification',
         data: { withSome: 'data' },
       })
+      let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
     getElectricalWorks()
         .then(data => {
             console.log(JSON.stringify(data))
@@ -246,12 +248,14 @@ app.get('/test', async function (req, res) {
         .catch(err => console.log(err))
 })
 app.get('/notification', async function (req, res) {
+    let messages = [];
     messages.push({
         to: process.env.MY_NOTIFICATION_TOKEN,
         sound: 'default',
         body: 'This is a test notification',
         data: { withSome: 'data' },
       })
+      let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
     getElectricalWorks()
         .then(data => {
             console.log(JSON.stringify(data))
