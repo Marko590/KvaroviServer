@@ -238,9 +238,27 @@ app.get('/test', async function (req, res) {
         body: 'This is a test notification',
         data: { withSome: 'data' },
       })
-   
+    getElectricalWorks()
+        .then(data => {
+            console.log(JSON.stringify(data))
+            res.end(JSON.stringify(data));
+        })
+        .catch(err => console.log(err))
 })
-
+app.get('/notification', async function (req, res) {
+    messages.push({
+        to: process.env.MY_NOTIFICATION_TOKEN,
+        sound: 'default',
+        body: 'This is a test notification',
+        data: { withSome: 'data' },
+      })
+    getElectricalWorks()
+        .then(data => {
+            console.log(JSON.stringify(data))
+            res.end(JSON.stringify(data));
+        })
+        .catch(err => console.log(err))
+})
 const port = process.env.PORT || 3000;
 
 app.set('port',port)
