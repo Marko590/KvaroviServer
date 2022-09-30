@@ -229,6 +229,15 @@ app.get('/struja/radovi', async function (req, res) {
         })
         .catch(err => console.log(err))
 })
+app.get('/test', async function (req, res) {
+
+    getElectricalWorks()
+        .then(data => {
+            console.log(JSON.stringify(data))
+            res.end(JSON.stringify(data));
+        })
+        .catch(err => console.log(err))
+})
 
 const port = process.env.PORT || 3000;
 
