@@ -17,6 +17,8 @@
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
     "mkcert": "^1.5.0",
+    "mongodb": "^4.10.0",
+    "mongoose": "^6.6.3",
     "node-html-parser": "^5.3.3",
     "request": "^2.88.2",
     "util": "^0.12.4"
