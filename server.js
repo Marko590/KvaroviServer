@@ -1,330 +1,118 @@
-
 var express = require('express');
 var app = express();
 var fs = require("fs");
 const axios = require('axios').default;
-
 const util = require('util')
 const request = require('request');
 var parser = require('node-html-parser');
-const url = "https://www.bvk.rs/kvarovi-na-mrezi/";
 const { Expo } = require('expo-server-sdk')
+const dbHandler = require('./dbHandler.js');
+const schedule = require('node-schedule');
+const formattingHandler = require('./formattingHandler.js')
+const malfunctionHandler = require('./malfunctionsHandler.js')
 
 
-const { info } = require('console');
-
+// Setting up expo notification service.
 let expo = new Expo({ accessToken: process.env.ACCESS_TOKEN });
 
 
-function plumbingNumberString(number){
-    let returnValue="Број кварова на водоводној мрежи: "+number
-    return returnValue
-}
+//Rewrite this so it doesn't make a request for each user
+async function generateNotifications() {
+    let messages = []
+    let list = await dbHandler.listAll()
+    console.log(list)
+    await list.forEach(async function (user) {
 
-function electricalNumberString(number){
-    let returnValue="Број кварова на електричној мрежи: "+number
-    return returnValue
-}
-
-
-
-
-function numberOfPlumbingAlerts(neighbourhood){
-    return getPlumbingInfo().then(data=>{
-        let counter=0
-
-        data.forEach(time=>{
-            time.streets.forEach(area=>{
-                if(area.neighbourhood===neighbourhood){
-                    counter+=area.streetList.length
-                    
-                }
+        let numPlumbing = await malfunctionHandler.numberOfPlumbingAlerts(user.neighbourhood)
+        let numElectrical = await malfunctionHandler.numberOfElectricalAlerts(user.neighbourhood)
+        if (Expo.isExpoPushToken(user.pushToken)) {
+            messages.push({
+                to: user.pushToken,
+                sound: 'default',
+                body: formattingHandler.electricalNumberString(numElectrical) + '\n' + formattingHandler.plumbingNumberString(numPlumbing),
+                title: 'Кварови: ' + user.neighbourhood
             })
-        })
-        return counter
-    })
-}
-
-function numberOfElectricalAlerts(neighbourhood) {
-    return getElectricalWorks()
-        .then(data => {    
-            var chosenArea = 0
-            data.allData.forEach(area=> {
-                console.log(area)
-                if (area.neighbourhood === neighbourhood) {
-                    chosenArea = area
-                }
-            })
-            console.log(chosenArea)
-            let counter=0
-            chosenArea.interval.forEach(time=>{
-                counter =counter+ time.streets.length
-            })
-            return counter
-        })
-}
-
-
-function addressUrlBuilder(address) {
-
-    //transliterate address to serbian latin
-    const transliterate = require('transliteration').transliterate;
-
-
-    let fullAddressDash = address
-    //remove text after '–' if it exists
-    if (fullAddressDash.indexOf('–') != -1) {
-        fullAddressDash = fullAddressDash.substring(0, fullAddressDash.indexOf('–'))
-    }
-    const serbianLatinAddress = transliterate(fullAddressDash, { from: 'sr-Cyrl', to: 'serbian-latin' });
-    //replace "dzh" with "dž" and "ch" with "č" and "tsh" with "ć" and "sh" with "š" and "dj" with "đ"
-    const serbianLatinAddress2 = serbianLatinAddress.replace(/dzh/g, "dž").replace(/ch/g, "č").replace(/tsh/g, "ć").replace(/sh/g, "š").replace(/dj/g, "đ");
-
-    const fullAddress = serbianLatinAddress2.trim() + ', Београд'
-
-
-
-
-    const addressSplit = fullAddress.split(' ')
-    const addressUrl = addressSplit.join('+')
-
-    return ("http://www.google.com/maps/place/" + addressUrl + "/?hl=sr").trim()
-
-}
-
-function getCoordinateFromResponseBody(address) {
-    return axios.get(encodeURI(addressUrlBuilder(address))).then(response => {
-        let content = ''
-        let root = parser.parse(response.data);
-
-        root.querySelectorAll('meta').forEach(element => {
-
-            if (element.getAttribute('property') == 'og:image' || element.getAttribute('itemprop') == 'image') {
-
-                content = element.getAttribute('content').substring(element.getAttribute('content').indexOf("ll=") + 3)
-            }
-        })
-
-        let coordinates = content.split(',')
-
-    })
-}
-
-
-
-/*
-:[
-    neighbourhood::string,
-    interval:
-            [
-                time:string,
-                streets:[] 
-            ]
-        }    
-]
-
-
-*/
-
-
-function getElectricalWorks(address) {
-    return axios.get("http://www.epsdistribucija.rs/Dan_0_Iskljucenja.htm").then(response => {
-        let content = new Array();
-        let root = parser.parse(response.data);
-
-        let table = root.querySelector('body > table:nth-child(2)');
-        let check = false;
-
-        let interval = []
-        let firstRow = table.childNodes.at(1)
-        const streetList = firstRow.childNodes.at(2).text.split(', ');
-        let previousName = firstRow.childNodes.at(0).text;
-        interval.push({ time: firstRow.childNodes.at(1).text, streets: streetList })
-
-
-
-        table.childNodes.slice(2).forEach(element => {
-            if (element.childNodes.at(0).text == previousName) {
-                const streetList = element.childNodes.at(2).text.split(', ');
-                interval.push({ time: element.childNodes.at(1).text, streets: streetList })
-            }
-            else {
-                content.push({ neighbourhood: previousName, interval: interval })
-                previousName = element.childNodes.at(0).text;
-                interval = []
-                const streetList = element.childNodes.at(2).text.split(', ');
-                interval.push({ time: element.childNodes.at(1).text, streets: streetList })
-            }
-
-            // return last element
-        })
-
-
-        return { allData: content };
-    })
-}
-
-function getPlannedWorks(address) {
-    return axios.get("https://www.bvk.rs/planirani-radovi/").then(response => {
-        const returnValue = new Array()
-        let content = ''
-        let root = parser.parse(response.data);
-
-        let divs = root.querySelectorAll('section.av_toggle_section > div');
-
-        divs.forEach(element => {
-            const title = element.firstChild.text
-            element.firstChild.remove()
-
-            returnValue.push({ title: title, content: element.innerHTML })
-        })
-        return { allData: returnValue }
-    })
-}
-
-
- 
-
-
-function getPlumbingInfo() {
-    return axios.get(url).then(response => {
-
-        const returnValue = new Array()
-
-        let root = parser.parse(response.data);
-
-        let div = root.querySelector('.toggle_content');
-        let child = div.getElementsByTagName('blockquote').at(0)
-
-        let time = ''
-        let streets = null
-
-        while (child != null) {
-
-            if (child.tagName == 'BLOCKQUOTE') {
-                time = child.text.trim()
-            }
-            else if (child.tagName == 'UL') {
-                const streetsArray = new Array();
-                child.childNodes.forEach(element => {
-                    if (element.text == '\n') {
-                        return
-                    }
-
-                    const text = element.text
-
-                    const splitText = text.split(':')
-
-                    const neighbourhood = splitText.at(0)
-                    const streets = splitText.at(1).trim()
-
-                    const splitStreets = streets.split(',')
-                    streetsArray.push({ neighbourhood: neighbourhood, streetList: splitStreets });
-                })
-                streets = streetsArray
-
-                returnValue.push({ time: time.trim(), streets: streets })
-
-
-            }
-            child = child.nextElementSibling;
         }
-
-
-        returnValue.map(element => {
-            console.log(element.time + '\n')
-            element.streets.map(street => {
-                console.log(street.neighbourhood + '\n')
-                street.streetList.map(ulica => {
-                    console.log(ulica + '\n')
-                })
-            })
-        })
-        return returnValue
+        console.log(messages)
     })
+    setTimeout(() => { expo.sendPushNotificationsAsync(messages) }, 1000)
 }
 
+generateNotifications()
+
+// Setting up a callback function to be called each day at 10 AM.
+const rule = new schedule.RecurrenceRule();
+rule.hour = 10;
+const job = schedule.scheduleJob(rule, function () {
+    generateNotifications()
+});
+
+//Middleware setup
+var bodyParser = require('body-parser')
+app.use(bodyParser.json());       // to support JSON-encoded bodies
+app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+    extended: true
+}));
+app.use(express.json());       // to support JSON-encoded bodies
+app.use(express.urlencoded()); // to support URL-encoded bodies
+
+// Routes
 
 app.get('/vodovod/kvarovi', async function (req, res) {
 
-    getPlumbingInfo()
-        .then(data => {
-
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
+    let data = await malfunctionHandler.getPlumbingInfo()
+    res.end(JSON.stringify(data));
 })
 
+app.get('/db', async function (req, res) {
+    
+    let result = await dbHandler.listAll()
+    res.end(JSON.stringify(result))
+})
+
+app.post('/notification/add', async function (req, res) {
+    const d = new Date()
+    dbHandler.insertUser(req.body.chosen, d.getTime(), req.body.token)
+    res.end(JSON.stringify({ response: 'response' }))
+})
+
+app.post('/notification/update', async function (req, res) {
+    const d = new Date()
+
+    dbHandler.updateUser(req.body.chosen, req.body.token)
+    res.end(JSON.stringify({ response: 'response' }))
+})
+
+app.post('/notification/delete', async function (req, res) {
+
+    dbHandler.deleteUser(req.body.token)
+    res.end(JSON.stringify({ response: 'response' }))
+})
 
 app.get('/vodovod/radovi', async function (req, res) {
 
-    getPlannedWorks()
-        .then(data => {
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
+    let data = await malfunctionHandler.getPlannedWorks()
+    res.end(JSON.stringify(data));
 })
-app.get('/vodovod/coordinates', async function (req, res) {
 
-    getCoordinateFromResponseBody(req.query.address)
-        .then(data => {
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
+app.post('/vodovod/coordinates', async function (req, res) {
+
+    let data = await malfunctionHandler.getCoordinateFromResponseBody(req.body.address)
+    res.end(JSON.stringify(data));
 })
+
 app.get('/struja/radovi', async function (req, res) {
 
-    getElectricalWorks()
-        .then(data => {
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
+    let data = await malfunctionHandler.getElectricalWorks()
+    res.end(JSON.stringify(data));
 })
-app.get('/test', async function (req, res) {
-    let messages = [];
-    messages.push({
-        to: process.env.MY_NOTIFICATION_TOKEN,
-        sound: 'default',
-        body: 'This is a test notification',
-        data: { withSome: 'data' },
-    })
-    let ticketChunk = await expo.sendPushNotificationsAsync(messages);
-    getElectricalWorks()
-        .then(data => {
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
-})
-app.get('/notification', async function (req, res) {
 
-    let messages = [];
-    messages.push({
-        to: process.env.MY_NOTIFICATION_TOKEN,
-        sound: 'default',
-        body: 'This is a test notification',
-        data: { withSome: 'data' },
-    })
-    let ticketChunk = await expo.sendPushNotificationsAsync(messages);
-    getElectricalWorks()
-        .then(data => {
-            console.log(JSON.stringify(data))
-            res.end(JSON.stringify(data));
-        })
-        .catch(err => console.log(err))
-})
 const port = process.env.PORT || 3000;
 
 app.set('port', port)
 var server = app.listen(port, function () {
     var host = server.address().address
     var port = server.address().port
-
-
 
     console.log("Example app listening at http://%s:%s", host, port)
 })

@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.27.2",
+    "body-parser": "^1.20.0",
     "cheerio": "^1.0.0-rc.11",
     "expo-server-sdk": "^3.6.0",
     "express": "^4.18.1",
@@ -20,6 +21,7 @@
     "mongodb": "^4.10.0",
     "mongoose": "^6.6.3",
     "node-html-parser": "^5.3.3",
+    "node-schedule": "^2.1.0",
     "request": "^2.88.2",
     "util": "^0.12.4"
   }

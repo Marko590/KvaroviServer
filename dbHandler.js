@@ -1,6 +1,6 @@
-var MongoClient = require('mongodb').MongoClient;
+const { MongoClient } = require("mongodb");
 var DBurl = "mongodb://localhost:27017/mydb";
-
+const client = new MongoClient(DBurl);
 
 /*schema : user{
     pushToken:string,
@@ -8,63 +8,78 @@ var DBurl = "mongodb://localhost:27017/mydb";
     neighbourhood:string
 }
 */
-
-
-function insertUser(neighbourhood,time,token){
-    MongoClient.connect(DBurl,function(err,db){
-        if(err) throw err;
-        var dbo=db.db("mydb")
-        var newUser={neighbourhood:neighbourhood,timeCreated:time,pushToken:token}
-        dbo.collection('users').insertOne(newUser,function(err,res){
-            if(err) throw err;
-            console.log("User successfully inserted.")
-            db.close()
-        })
-    })
+async function listAll() {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    console.log("Nesto")
+    await client.connect();
+    // Establish and verify connection
+    var result = await client.db("mydb").collection('users').find({}).toArray()
+    return result
+    
+    console.log("Connected successfully to server");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+async function insertUser(neighbourhood,time,token) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    console.log("Nesto")
+    await client.connect();
+    // Establish and verify connection
+    var newUser={neighbourhood:neighbourhood,timeCreated:time,pushToken:token}
+    await client.db("mydb").collection('users').insertOne(newUser)
+    
+   
+    console.log("Connected successfully to server");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+async function updateUser(newNeighbourhood,token) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    console.log("Nesto")
+    await client.connect();
+    // Establish and verify connection
+    var myquery = { pushToken: token };
+    var newvalues = { $set: {neighbourhood:newNeighbourhood } };
+    await client.db("mydb").collection('users').updateOne(myquery,newvalues)
+    
+   
+    console.log("Connected successfully to server");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
 }
 
-function updateUser(newNeighbourhood,token){
-    MongoClient.connect(DBurl, function(err, db) {
-        if (err) throw err;
-        var dbo = db.db("mydb");
-        var myquery = { pushToken: token };
-        var newvalues = { $set: {neighbourhood:newNeighbourhood } };
-        dbo.collection("users").updateOne(myquery, newvalues, function(err, res) {
-          if (err) throw err;
-          console.log("User successfully updated.");
-          db.close();
-        });
-      }); 
+
+async function deleteUser(token) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    console.log("Nesto")
+    await client.connect();
+    // Establish and verify connection
+   
+    await client.db("mydb").collection('users').deleteOne({pushToken:token})
+    
+   
+    console.log("Connected successfully to server");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
 }
 
-function deleteUser(token){
-    MongoClient.connect(DBurl, function(err, db) {
-        if (err) throw err;
-        var dbo = db.db("mydb");
-        var myquery = { pushToken:token };
-        dbo.collection("users").deleteOne(myquery, function(err, obj) {
-          if (err) throw err;
-          console.log("User successfully deleted.");
-          db.close();
-        });
-      }); 
-}
-function listAll(){
-    let returnValue=0
-    MongoClient.connect(DBurl, function(err, db) {
-        if (err) throw err;
-        var dbo = db.db("mydb");
-        dbo.collection("users").find({}).toArray(function(err, result) {
-          if (err) throw err;
-          console.log(result);
-          
-          db.close();
-          
-        });
-        
-      }); 
-     
-}
+//TODO: add error handling when the api tries to update a non-existant user.
+
+
+// TODO: Find out how to forward this collected data as a return value of the function.
+
 function mainFunction(){
 MongoClient.connect(DBurl, function(err, db) {
   if (err) throw err;
@@ -98,4 +113,4 @@ MongoClient.connect(DBurl, function(err, db) {
   
 }
 
-module.exports= {mainFunction,listAll,insertUser,deleteUser}
+module.exports= {mainFunction,listAll,insertUser,deleteUser,updateUser,listAll}
