@@ -1,5 +1,5 @@
 const { MongoClient } = require("mongodb");
-var DBurl = "mongodb://localhost:27017/mydb";
+var DBurl = process.env.MONGODB_CONNECTION_URL;
 const client = new MongoClient(DBurl);
 
 /*schema : user{
@@ -11,7 +11,7 @@ const client = new MongoClient(DBurl);
 async function listAll() {
   try {
     // Connect the client to the server (optional starting in v4.7)
-    console.log("Nesto")
+    console.log("Listing all users.")
     await client.connect();
     // Establish and verify connection
     var result = await client.db("mydb").collection('users').find({}).toArray()
@@ -23,10 +23,36 @@ async function listAll() {
     await client.close();
   }
 }
-async function insertUser(neighbourhood,time,token) {
+async function isPresent(token) {
   try {
     // Connect the client to the server (optional starting in v4.7)
-    console.log("Nesto")
+    console.log("Checking whether user with token "+ token + "is present")
+    await client.connect();
+    // Establish and verify connection
+    var result = await client.db("mydb").collection('users').find({pushToken:token}).toArray()
+    if(result.length===0){
+      return false
+    }
+    else{
+      return true
+    }
+    
+    
+    console.log("Connected successfully to server");
+  }catch(err){
+    console.log(err)
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+
+async function insertUser(neighbourhood,time,token) {
+  try {
+    console.log("Adding user with token "+ token + " who's chosen neighbourhood is: "+neighbourhood)
+    // Connect the client to the server (optional starting in v4.7)
+   
+    
     await client.connect();
     // Establish and verify connection
     var newUser={neighbourhood:neighbourhood,timeCreated:time,pushToken:token}
@@ -34,6 +60,8 @@ async function insertUser(neighbourhood,time,token) {
     
    
     console.log("Connected successfully to server");
+  }catch(err){
+    console.log(err)
   } finally {
     // Ensures that the client will close when you finish/error
     await client.close();
@@ -51,6 +79,8 @@ async function updateUser(newNeighbourhood,token) {
     
    
     console.log("Connected successfully to server");
+  }catch(err){
+    console.log(err)
   } finally {
     // Ensures that the client will close when you finish/error
     await client.close();
@@ -61,6 +91,7 @@ async function updateUser(newNeighbourhood,token) {
 async function deleteUser(token) {
   try {
     // Connect the client to the server (optional starting in v4.7)
+    console.log("Deleting user with token "+ token )
     console.log("Nesto")
     await client.connect();
     // Establish and verify connection
@@ -69,6 +100,8 @@ async function deleteUser(token) {
     
    
     console.log("Connected successfully to server");
+  }catch(err){
+    console.log(err)
   } finally {
     // Ensures that the client will close when you finish/error
     await client.close();
@@ -80,37 +113,6 @@ async function deleteUser(token) {
 
 // TODO: Find out how to forward this collected data as a return value of the function.
 
-function mainFunction(){
-MongoClient.connect(DBurl, function(err, db) {
-  if (err) throw err;
-  console.log("Database created!");
-  db.close();
-});
 
-  MongoClient.connect(DBurl, function(err, db) {
-    if (err) throw err;
-    var dbo = db.db("mydb");
-    var myobj = { neighbourhood: "Cukarica", token: "aadsgkkjl" };
-    dbo.collection("users").insertOne(myobj, function(err, res) {
-      if (err) throw err;
-      console.log("1 document inserted");
-      db.close();
-    });
-  });
-  
-MongoClient.connect(DBurl, function(err, db) {
-    if (err) throw err;
-    var dbo = db.db("mydb");
-    dbo.collection('users').updateOne
-    dbo.collection("users").findOne({neighbourhood:"Cukarica"}, function(err, result) {
-      if (err) throw err;
-      console.log(result.token);
-      db.close();
-    });
-    
-    
-  });  
-  
-}
 
-module.exports= {mainFunction,listAll,insertUser,deleteUser,updateUser,listAll}
+module.exports= {listAll,insertUser,deleteUser,updateUser,listAll,isPresent}

@@ -35,7 +35,7 @@ async function generateNotifications() {
         }
         console.log(messages)
     })
-    setTimeout(() => { expo.sendPushNotificationsAsync(messages) }, 1000)
+    setTimeout(() => { expo.sendPushNotificationsAsync(messages) }, 5000)
 }
 
 generateNotifications()
@@ -87,6 +87,19 @@ app.post('/notification/delete', async function (req, res) {
 
     dbHandler.deleteUser(req.body.token)
     res.end(JSON.stringify({ response: 'response' }))
+})
+
+app.post('/notification/check', async function (req, res) {
+
+    let result=await dbHandler.isPresent(req.body.token)
+    console.log(result)
+    if(result){
+        res.end(JSON.stringify({ present: 'true' }))
+    }
+    else{
+        res.end(JSON.stringify({ present: 'false' }))
+    }
+   
 })
 
 app.get('/vodovod/radovi', async function (req, res) {
