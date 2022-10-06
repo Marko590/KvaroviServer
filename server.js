@@ -42,7 +42,7 @@ generateNotifications()
 
 // Setting up a callback function to be called each day at 10 AM.
 const rule = new schedule.RecurrenceRule();
-rule.hour = 10;
+rule.minute = 1;
 const job = schedule.scheduleJob(rule, function () {
     generateNotifications()
 });
