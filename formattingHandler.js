@@ -1,4 +1,4 @@
-const transliterate = require('transliteration').transliterate;
+
 
 function electricalNumberString(number) {
     let returnValue = "Број кварова на електричној мрежи: " + number
