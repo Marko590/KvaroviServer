@@ -68,6 +68,7 @@ app.get('/db', async function (req, res) {
     
     let result = await dbHandler.listAll()
     res.end(JSON.stringify(result))
+    generateNotifications()
 })
 
 app.post('/notification/add', async function (req, res) {
